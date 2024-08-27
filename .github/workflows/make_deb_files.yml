@@ -56,7 +56,7 @@ jobs:
       with:
         name: ros-humble-kachaka-pkgs
         path: |
-          /home/runner/work/kachaka-api/ros2/ros-humble-kachaka-pkgs.zip
+          /home/runner/work/kachaka-api/kachaka-api/ros2/ros-humble-kachaka-pkgs.zip
 
   release:
     needs: build
