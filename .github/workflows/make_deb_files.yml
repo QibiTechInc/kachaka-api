@@ -41,11 +41,13 @@ jobs:
         bloom-generate rosdebian --ros-distro humble
         fakeroot debian/rules binary
 
-    - name: Verify Debian package
+    - name: Verify1
       run: |
-        ls `pwd`/
-        ls `pwd`/../
-        ls `pwd`/../../
+        ls `pwd`/../../ros2/kachaka_interfaces/
+
+    - name: Verify2
+      run: |
+        ls `pwd`/../../ros2/kachaka_description/
 
     - name: zip Debian packages
       run: |
