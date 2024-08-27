@@ -68,6 +68,15 @@ jobs:
       with:
         name: ros-humble-kachaka-pkgs
 
+    - name: Delete existing release if it exists
+      run: |
+        release_id=$(gh api repos/:owner/:repo/releases/tags/${{ github.ref_name }} --jq '.id' || echo "")
+        if [ -n "$release_id" ]; then
+          gh api repos/:owner/:repo/releases/$release_id -X DELETE
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
