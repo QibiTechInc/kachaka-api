@@ -43,11 +43,11 @@ jobs:
 
     - name: Verify1
       run: |
-        ls `pwd`/../ros2/kachaka_interfaces/
+        ls `pwd`/
 
     - name: Verify2
       run: |
-        ls `pwd`/../ros2/kachaka_description/
+        ls `pwd`/ros2
 
     - name: zip Debian packages
       run: |
