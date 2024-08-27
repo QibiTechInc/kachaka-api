@@ -43,7 +43,7 @@ jobs:
 
     - name: Verify Debian package
       run: |
-        find `pwd`/*.deb -maxdepth 1
+        find `pwd`/*.deb -maxdepth 2
 
     - name: zip Debian packages
       run: |
