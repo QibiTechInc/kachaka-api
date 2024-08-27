@@ -41,25 +41,22 @@ jobs:
         bloom-generate rosdebian --ros-distro humble
         fakeroot debian/rules binary
 
-    - name: Verify1
+    - name: Verify deb files
       run: |
+        find `pwd`/ros2/*.deb -maxdepth 1
         ls `pwd`/
-
-    - name: Verify2
-      run: |
-        ls `pwd`/ros2
 
     - name: zip Debian packages
       run: |
+        cd `pwd`/ros2/
         zip ros-humble-kachaka-pkgs.zip *.deb
-        find `pwd`/* -maxdepth 1
 
     - name: Upload Release Asset
       uses: actions/upload-artifact@v3
       with:
         name: ros-humble-kachaka-pkgs
         path: |
-          /home/runner/work/kachaka-api/ros-humble-kachaka-pkgs.zip
+          /home/runner/work/kachaka-api/ros2/ros-humble-kachaka-pkgs.zip
 
   release:
     needs: build
@@ -89,6 +86,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: /home/runner/work/kachaka-api/ros-humble-kachaka-pkgs.zip
+        asset_path: /home/runner/work/kachaka-api/ros2/ros-humble-kachaka-pkgs.zip
         asset_name: ros-humble-kachaka-pkgs.zip
         asset_content_type: application/octet-stream
