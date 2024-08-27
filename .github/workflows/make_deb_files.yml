@@ -86,6 +86,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: /home/runner/work/kachaka-api/kachaka-api/ros2/ros-humble-kachaka-pkgs.zip
+        asset_path: /home/runner/work/kachaka-api/kachaka-api/ros-humble-kachaka-pkgs.zip
         asset_name: ros-humble-kachaka-pkgs.zip
         asset_content_type: application/octet-stream
