@@ -93,7 +93,7 @@ class KachakaApiClientBase:
     def get_battery_info(self) -> tuple[float, pb2.PowerSupplyStatus]:
         request = pb2.GetRequest()
         response: pb2.GetBatteryInfoResponse = self.stub.GetBatteryInfo(request)
-        return (response.battery_percentage, response.power_supply_status)
+        return (response.remaining_percentage, response.power_supply_status)
 
     def get_object_detection(
         self,
@@ -407,6 +407,7 @@ class KachakaApiClientBase:
         self,
         distance_meter: float,
         *,
+        speed: float = 0.0,
         wait_for_completion: bool = True,
         cancel_all: bool = True,
         tts_on_success: str = "",
@@ -415,7 +416,7 @@ class KachakaApiClientBase:
         return self.start_command(
             pb2.Command(
                 move_forward_command=pb2.MoveForwardCommand(
-                    distance_meter=distance_meter
+                    distance_meter=distance_meter, speed=speed
                 )
             ),
             wait_for_completion=wait_for_completion,
@@ -462,6 +463,22 @@ class KachakaApiClientBase:
                     dock_forward=dock_forward,
                 )
             ),
+            wait_for_completion=wait_for_completion,
+            cancel_all=cancel_all,
+            tts_on_success=tts_on_success,
+            title=title,
+        )
+
+    def localize(
+        self,
+        *,
+        wait_for_completion: bool = True,
+        cancel_all: bool = True,
+        tts_on_success: str = "",
+        title: str = "",
+    ) -> pb2.Result:
+        return self.start_command(
+            pb2.Command(localize_command=pb2.LocalizeCommand()),
             wait_for_completion=wait_for_completion,
             cancel_all=cancel_all,
             tts_on_success=tts_on_success,

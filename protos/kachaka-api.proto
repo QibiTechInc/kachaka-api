@@ -252,7 +252,9 @@ message Command {
     LockCommand lock_command = 15;
     MoveForwardCommand move_forward_command = 16;
     RotateInPlaceCommand rotate_in_place_command = 17;
+    // DockAnyShelfWithRegistrationCommand is available only in Kachaka Pro.
     DockAnyShelfWithRegistrationCommand dock_any_shelf_with_registration_command = 18;
+    LocalizeCommand localize_command = 19;
   }
 }
 
@@ -298,6 +300,7 @@ message LockCommand {
 
 message MoveForwardCommand {
   double distance_meter = 1;
+  double speed = 2;  // [m/s]
 }
 
 message RotateInPlaceCommand {
@@ -307,6 +310,9 @@ message RotateInPlaceCommand {
 message DockAnyShelfWithRegistrationCommand {
   string target_location_id = 1;
   bool dock_forward = 2;
+}
+
+message LocalizeCommand {
 }
 
 enum CommandState {
@@ -608,6 +614,8 @@ message LoadMapPreviewResponse {
 message SwitchMapRequest {
   string map_id = 1;
   Pose initial_pose = 2;  // use the charger pose if the message is empty
+
+  // Available only in Kachaka Pro. In the standard version, setting this flag to true will throw an error.
   bool inherit_docking_state_and_docked_shelf = 3;
 }
 
