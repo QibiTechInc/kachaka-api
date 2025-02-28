@@ -52,7 +52,7 @@ jobs:
         zip ros-humble-kachaka-pkgs.zip *.deb
 
     - name: Upload Release Asset
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ros-humble-kachaka-pkgs
         path: |
