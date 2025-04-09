@@ -1,0 +1,75 @@
+@startuml multi_map_exporter_kachaka_fleet
+actor User as U
+participant "Local PC\n(Fleet Manager)" as FM
+participant "Kachaka Robot\n(gRPC Server)" as KR
+participant "Edge PC\n(HAT SDK)" as EP
+database "robot_config.json" as ConfigDB
+
+skinparam {
+  FontName Arial
+  FontSize 12
+  ArrowColor #4A90E2
+  ActorBorderColor #4A90E2
+  ComponentBorderColor #4A90E2
+  DatabaseBorderColor #4A90E2
+  NoteBackgroundColor #FFFFCC
+  NoteBorderColor #DDBB77
+}
+
+== 1. Initialize Map Export ==
+U -> FM: Run multi_map_exporter.py\nin /ros2_ws/src/kachaka-api/python/demos/grpc_samples
+activate FM
+
+note right of FM
+  Includes robot IPs, map paths,
+  and Fleet Manager settings
+end note
+
+== 2. Discover Robots and Maps (gRPC) ==
+loop For each robot in config
+    FM -> KR: GetRobotSerialNumber (gRPC)
+    activate KR
+    KR --> FM: Return serial_number
+    deactivate KR
+
+    FM -> KR: GetCurrentMapId (gRPC)
+    activate KR
+    KR --> FM: Return map_id
+    deactivate KR
+
+    FM -> KR: GetPngMap (gRPC)
+    activate KR
+    KR --> FM: Return map data (PNG, metadata)
+    deactivate KR
+
+    FM -> FM: Sanitize map name
+    FM -> FM: Generate file names\n(map_name.png, map_name_metadata.yaml,\nmap_name_metadata.bin)
+    FM -> FM: Create robot-specific directory\n(Kachaka_<serial_number>)
+    FM -> FM: Save files in robot-specific directory
+end
+
+== 3. Transfer Maps to Edge PC (SCP) ==
+FM -> FM: Execute SCP command\n(using SSH keys)
+FM -> EP: Transfer robot-specific directories via SCP
+activate EP
+EP -> EP: Store files in\n/usr/local/share/hat_sdk/map/Kachaka_<serial_number>/
+EP --> FM: Confirm file transfer
+deactivate EP
+
+== 4. Ikkatsu Parameter Update (HATS UI Triggered) ==
+U -> FM: Trigger "ikkatsu" (batch) update in HATS UI
+FM -> FM: Send ikkatsu parameters\n(config_file_path, map info)
+note left of FM: data = {\n  'config_file_path': ..., \n  'map': {\n    'map_image_path': ..., \n    'map_yaml_path': ...,\n    'share_map': ..., \n    'priority': 1\n  },\n}
+
+FM -> FM: __handle_ikkatsu_parameters(data)
+FM -> FM: Update internal map configurations
+
+note over FM: The FM stores and manages a list of robot configurations, each with its associated map settings. The __handle_ikkatsu_parameters function updates these internal configurations. The maps directory paths are unique for each robot.
+
+== 5. Configure Fleet Manager ==
+FM -> ConfigDB: Update robot_config.json
+note right: Add/update map file paths\nfor multiple robots
+FM -> FM: Configure Fleet Manager
+FM --> U: Confirm process completion
+deactivate FM
+@enduml
