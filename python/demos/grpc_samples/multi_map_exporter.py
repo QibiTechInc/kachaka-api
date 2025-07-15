@@ -7,13 +7,61 @@ Author: Jimmy Majumder
 Version: 1.0.0 (February 2025 edition)
 Date: 2025-02-18 
 Version: 1.0.2
-Date: 2025-06-12 | July 2025 edition
+Date: 2025-06-15 | July 2025 edition
 Copyright: QibiTech Inc. 
 
 Description:
 This enhanced script exports maps from multiple Kachaka robots to multiple edge PCs based on a
 configurable mapping. It facilitates advanced fleet management by automating map data extraction
 and ensuring structured storage across distributed edge computing infrastructure.
+
+gRPC Data Collection:
+The script connects to Kachaka robots via gRPC API and collects the following RAW data:
+
+1. Robot Information:
+   - GetRobotSerialNumber() → Robot serial number (string: "KCH001234567")
+   - GetRobotVersion() → Firmware version and build information
+   - GetCurrentMapId() → Active map identifier (string: "map_12345")
+
+2. Complete Map Data via GetPngMap():
+   - map.data → Complete PNG image file (raw bytes) - THE MAIN MAP IMAGE
+   - map.name → Map name (string: "Living Room")
+   - map.resolution → Meters per pixel (float: 0.05)
+   - map.width → Image width in pixels (int: 2048)
+   - map.height → Image height in pixels (int: 1536)
+   - map.origin.x → Map origin X coordinate in meters (float: -51.2)
+   - map.origin.y → Map origin Y coordinate in meters (float: -38.4)
+   - map.origin.theta → Map origin rotation in radians (float: 0.0)
+   - metadata.cursor → Map version/timestamp (int64: 1234567890)
+
+3. Location Data:
+   - GetLocations() → All saved waypoints and their coordinates
+
+File Storage (Local & Remote):
+The collected data is processed and stored as follows:
+
+Local Storage (./Kachaka_[SERIAL]/):
+├── [map_name].png              ← Raw PNG image data (direct from gRPC)
+├── [map_name].jpg              ← Converted JPEG version (from PNG data)
+├── [map_name]_metadata.yaml    ← Structured map properties (YAML format)
+├── [map_name]_metadata.bin     ← Binary cursor value (8-byte int64)
+└── [map_name]_waypoints.loc    ← All waypoint locations (text format)
+
+Remote Storage (Edge PCs):
+Primary Location: [configured_map_dir]/Kachaka_[SERIAL]/
+├── All files from local storage transferred via SCP
+└── Same directory structure maintained
+
+Backup Location (if configured): [backup_dir]/Kachaka_[SERIAL]/
+├── Complete duplicate of all map files
+└── Provides redundancy for critical map data
+
+Data Processing:
+- PNG Image: Saved as-is (no conversion) - raw bytes from gRPC
+- JPEG Image: Converted from PNG data using PIL/Pillow
+- YAML Metadata: Structured formatting of map properties
+- Binary Cursor: Int64 packed to 8-byte binary format
+- Waypoints: Text representation of location data
 
 Functionality:
 - Establishes gRPC connections with multiple Kachaka robots based on YAML configuration
@@ -63,8 +111,11 @@ Prerequisites:
 8. python3 -m grpc_tools.protoc -I../../../protos --python_out=. --pyi_out=. --grpc_python_out=. ../../../protos/kachaka-api.proto # make sure where the proto file is located
 9. Create the configuration file (multi_map_exporter_config.yml) in the same directory
 10. python3 multi_map_exporter.py # run the script
+11. python3 multi_map_exporter.py --debug # run the script with debug mode enabled
+11. python3 multi_map_exporter.py --config multi_map_exporter_config.yml --debug # run the script with custom config file and debug mode enabled
 """
-
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 import sys
 import grpc
 import kachaka_api_pb2
@@ -97,6 +148,8 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='Kachaka Map Exporter')
     parser.add_argument('--config', type=str, default=CONFIG_FILE,
                         help=f'Path to configuration file (default: {CONFIG_FILE})')
+    parser.add_argument('--debug', action='store_true',
+                        help='Enable detailed debug output for map data')
     return parser.parse_args()
 
 def load_config(config_file):
@@ -395,7 +448,7 @@ def create_remote_directory(robot_id, edge_pc, base_dir):
         else:
             ssh_command = [
                 "sshpass", "-p", password, "ssh",
-                                f"{username}@{ip}",
+                f"{username}@{ip}",
                 f"mkdir -p {base_dir}{robot_id}"
             ]
         
@@ -548,14 +601,15 @@ def validate_binary_file(file_path):
     except Exception as e:
         log_error(f"Failed to validate binary file {file_path}: {str(e)}")
         return False
-
-def get_map_data(robot_config, edge_pc_passwords):
+    
+def get_map_data(robot_config, edge_pc_passwords, debug_mode=False):
     """
     Retrieves map data from a Kachaka robot and transfers to specified edge PCs.
     
     Args:
         robot_config (dict): Robot configuration including IP, name, and target edge PCs.
         edge_pc_passwords (dict): Dictionary of edge PC passwords keyed by edge PC ID.
+        debug_mode (bool): Enable detailed debug output for map data.
     """
     robot_ip = robot_config["ip"]
     robot_name = robot_config["name"]
@@ -590,7 +644,11 @@ def get_map_data(robot_config, edge_pc_passwords):
         # Get robot serial number
         serial_number_response = stub.GetRobotSerialNumber(kachaka_api_pb2.GetRequest())
         robot_serial_number = serial_number_response.serial_number
+        
+        # Clean log info + detailed data from old version
         log_info(f"Connected to robot {robot_name} (Serial: {robot_serial_number})")
+        if debug_mode:
+            log_info(f"---------- serial number ({grpc_address}): {robot_serial_number} ----------")
         
         # Update status
         transfer_status["robots"][robot_name]["connected"] = True
@@ -599,15 +657,29 @@ def get_map_data(robot_config, edge_pc_passwords):
         # Get current map ID
         current_map_id_response = stub.GetCurrentMapId(kachaka_api_pb2.GetRequest())
         map_id = current_map_id_response.id
+        
+        # Clean log info + detailed data from old version
         log_info(f"Current map ID for {robot_name}: {map_id}")
+        if debug_mode:
+            log_info(f"---------- map id ({grpc_address}): {map_id} ----------")
         
         # Get robot version
         version_response = stub.GetRobotVersion(kachaka_api_pb2.GetRequest())
+        
+        # Clean log info + detailed data from old version
         log_info(f"Robot version for {robot_name}: {version_response}")
+        if debug_mode:
+            log_info(f"---------- robot version ({grpc_address}) ----------")
+            log_info(str(version_response))  # Detailed version data from old version
         
         # Get map data
         map_response = stub.GetPngMap(kachaka_api_pb2.GetRequest())
+        
+        # Clean log info + detailed data from old version
         log_info(f"Retrieved map data for {robot_name}")
+        if debug_mode:
+            log_info(f"---------- Map ({grpc_address}) ----------")
+            log_info(str(map_response))  # Detailed map data from old version
         
         # Update status
         transfer_status["robots"][robot_name]["map_retrieved"] = True
@@ -668,6 +740,10 @@ def get_map_data(robot_config, edge_pc_passwords):
             yaml.dump(map_metadata, yaml_file, default_flow_style=False)
         log_info(f"Saved {yaml_filename} locally")
         
+        # Detailed metadata from old version
+        if debug_mode:
+            log_info(f"Extracted Map Metadata ({grpc_address}): {map_metadata}")
+        
         # Validate YAML file
         if not validate_yaml_file(yaml_path):
             log_error(f"YAML file validation failed for {robot_name}")
@@ -678,6 +754,10 @@ def get_map_data(robot_config, edge_pc_passwords):
         with open(bin_path, "wb") as binary_file:
             binary_file.write(struct.pack("<q", cursor_value))
         log_info(f"Saved {bin_filename} locally with cursor value: {cursor_value}")
+        
+        # Detailed cursor data from old version
+        if debug_mode:
+            log_info(f"Map Cursor Value ({grpc_address}): {cursor_value}")
         
         # Validate binary file
         if not validate_binary_file(bin_path):
@@ -690,6 +770,12 @@ def get_map_data(robot_config, edge_pc_passwords):
             for loc in locations_response.locations:
                 print(f"Location: {loc}", file=f)
         log_info(f"Saved {waypoints_filename} locally with {len(locations_response.locations)} waypoints")
+        
+        # Detailed waypoints data from old version
+        if debug_mode:
+            log_info(f"---------- Locations ({grpc_address}) ----------")
+            for loc in locations_response.locations:
+                log_info(f"Location: {loc}")
         
         # Transfer files to each target edge PC
         for edge_pc_id in target_edge_pcs:
@@ -733,7 +819,7 @@ def get_map_data(robot_config, edge_pc_passwords):
             # Check if this is a system directory that might need special handling
             if primary_dir.startswith("/usr/") or primary_dir.startswith("/opt/"):
                 system_dir_ok = ensure_system_directory_exists(edge_pc, primary_dir)
-            if not system_dir_ok:
+                if not system_dir_ok:
                     log_error(f"Failed to ensure system directory {primary_dir} exists on {edge_pc['description']}")
                     continue
             
@@ -766,6 +852,8 @@ def get_map_data(robot_config, edge_pc_passwords):
                 log_error(f"Failed to create directory for {robot_name} in primary location on {edge_pc['description']}")
             
             # Transfer to backup location if configured
+            backup_transfer_success = False
+            backup_dir_created = False
             backup_dir = edge_pc.get("backup_dir")
             if backup_dir:
                 # Ensure home directory exists
@@ -796,8 +884,7 @@ def get_map_data(robot_config, edge_pc_passwords):
             transfer_status["robots"][robot_name]["transfers"][edge_pc_id] = {
                 "primary_success": primary_dir_created and primary_transfer_success,
                 "backup_success": backup_dir and backup_dir_created and backup_transfer_success if backup_dir else None
-            }
-            
+            }        
     except grpc.RpcError as e:
         log_error(f"gRPC error connecting to {robot_name} at {grpc_address}: {e}")
         return
@@ -815,6 +902,7 @@ def print_summary_report():
     - Edge PC connection statistics
     - Detailed status for each robot and edge PC
     - Robot-to-edge PC mapping
+    - Local fallback storage information
     - Location of the log file
     """
     print("\n" + "="*80)
@@ -900,16 +988,15 @@ def print_summary_report():
     print("-"*80)
     for edge_pc_id, robots in transfer_status["robot_to_edge_mapping"].items():
         if edge_pc_id not in EDGE_PC_LOOKUP:
-            continue
-            
+            continue 
         edge_pc_desc = EDGE_PC_LOOKUP[edge_pc_id]["description"]
         print(f"\n{edge_pc_desc} ({edge_pc_id}) receives maps from:")
         for robot_name in robots:
-            print(f"  • {robot_name}")
-    
+            print(f"  • {robot_name}")    
     print("\n" + "="*80)
     print(f"Log file: {LOG_FILE}")
     print("="*80 + "\n")
+
 
 def main():
     """
@@ -956,7 +1043,7 @@ def main():
     log_info(f"Loaded configuration from {args.config}")
     log_info(f"Found {len(KACHAKA_ROBOTS)} robots and {len(EDGE_PCS)} edge PCs in configuration")
     
-    # Collect all unique edge PC IDs that are targeted by robots
+        # Collect all unique edge PC IDs that are targeted by robots
     targeted_edge_pc_ids = set()
     for robot in KACHAKA_ROBOTS:
         for edge_pc_id in robot.get("target_edge_pcs", []):
@@ -1023,23 +1110,23 @@ def main():
         else:
             log_warning(f"Skipping edge PC {edge_pc['description']} due to connection failure")
     
-    # Check if at least one edge PC is connected
+    # # Check if at least one edge PC is connected
     if not edge_pc_passwords:
-        log_error("No edge PCs are connected. Exiting.")
-        return
-    
-    log_info(f"Successfully connected to {len(edge_pc_passwords)}/{len(targeted_edge_pc_ids)} targeted edge PCs")
-    
+        log_warning("No edge PCs are connected - will proceed with local storage only")
+        log_info("Robot map data will be collected and stored locally for manual transfer later")
+    else:
+        log_info(f"Successfully connected to {len(edge_pc_passwords)}/{len(targeted_edge_pc_ids)} targeted edge PCs")
+        
     # Create threads for each robot
     threads = []
     for robot_config in KACHAKA_ROBOTS:
         thread = threading.Thread(
             target=get_map_data,
-            args=(robot_config, edge_pc_passwords)
+            args=(robot_config, edge_pc_passwords, args.debug)
         )
         threads.append(thread)
         thread.start()
-    
+        
     # Wait for all threads to complete
     for thread in threads:
         thread.join()
@@ -1051,4 +1138,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
