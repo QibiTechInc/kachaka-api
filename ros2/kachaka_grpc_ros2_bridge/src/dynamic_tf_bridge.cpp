@@ -30,6 +30,8 @@ bool ConvertGrpcTfToRosTf(
     kachaka::grpc_ros2_bridge::converter::ConvertGrpcHeaderToRos2Header(
         transform_grpc.header(), &(transform_ros.header), frame_prefix);
 
+    if (transform_grpc.header().frame_id() == "map")
+      continue;
     transform_ros.child_frame_id =
         frame_prefix + transform_grpc.child_frame_id();
     transform_ros.transform.translation.x = transform_grpc.translation().x();
