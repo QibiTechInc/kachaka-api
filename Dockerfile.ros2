@@ -1,9 +1,11 @@
 # syntax=docker/dockerfile:1.6.0
 #=============================================================================
-FROM amd64/ros:humble-ros-core-jammy AS kachaka-api-base-amd64
+# FROM amd64/ros:humble-ros-core-noble AS kachaka-api-base-amd64
+FROM osrf/ros:kilted-desktop-full-noble AS kachaka-api-base-amd64
 #-----------------------------------------------------------------------------
-FROM arm64v8/ros:humble-ros-core-jammy AS kachaka-api-base-arm64
+# FROM arm64v8/ros:humble-ros-core-noble AS kachaka-api-base-arm64
 
+ARG ROS_DISTRO=kilted
 #=============================================================================
 FROM kachaka-api-base-${TARGETARCH} AS kachaka-api-base
 
@@ -15,10 +17,13 @@ RUN apt-get update && \
         dumb-init \
         language-pack-ja-base \
         libgrpc++ \
+        ros-${ROS_DISTRO}-rmw-zenoh* \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+RUN sed -i '/transport_optimization:/,/^[[:space:]]*},/d' /opt/ros/kilted/share/rmw_zenoh_cpp/config/DEFAULT_RMW_ZENOH_ROUTER_CONFIG.json5
+RUN sed -i '/transport_optimization:/,/^[[:space:]]*},/d' /opt/ros/kilted/share/rmw_zenoh_cpp/config/DEFAULT_RMW_ZENOH_SESSION_CONFIG.json5
 #=============================================================================
 FROM kachaka-api-base AS kachaka-api-rosdep
 
@@ -29,7 +34,7 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN rosdep init
+# RUN rosdep init
 RUN rosdep update
 
 RUN mkdir -p /ws/src
@@ -44,7 +49,7 @@ COPY ros2/demos/kachaka_speak/package.xml /ws/src/kachaka_speak/package.xml
 COPY ros2/demos/kachaka_vision/package.xml /ws/src/kachaka_vision/package.xml
 
 RUN rosdep keys --ignore-src --from-paths src \
-    | xargs rosdep resolve --rosdistro humble --os=ubuntu:jammy \
+    | xargs rosdep resolve --rosdistro ${ROS_DISTRO} --os=ubuntu:noble \
     | grep -v '^#' \
     | sed 's/ \+/\n/g'\
     | sort \
@@ -88,7 +93,6 @@ FROM kachaka-api-ros-base AS kachaka-api-build-base-amd64-amd64
 
 #-----------------------------------------------------------------------------
 FROM kachaka-api-ros-base AS kachaka-api-build-base-amd64-arm64
-
 COPY --from=impactaky/mimic-cross:host-jammy / /host
 RUN mv /host/mimic-cross-target /mimic-cross
 RUN /mimic-cross/setup.sh
@@ -117,7 +121,7 @@ COPY ros2/kachaka_description /ws/src/kachaka_description
 COPY ros2/kachaka_grpc_ros2_bridge /ws/src/kachaka_grpc_ros2_bridge
 COPY ros2/kachaka_interfaces /ws/src/kachaka_interfaces
 COPY --from=kachaka-api-protogen /ws/gen-src/cpp /ws/src/kachaka_grpc_ros2_bridge/gen-src
-RUN . /opt/ros/humble/setup.sh && \
+RUN . /opt/ros/${ROS_DISTRO}/setup.sh && \
     colcon build --install-base ${PREFIX} --merge-install --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Release
 
 #=============================================================================
@@ -166,12 +170,12 @@ ENV BUILD_VERSION=${BUILD_VERSION}
 ENTRYPOINT ["dumb-init", "--rewrite", "15:2", "--", "/opt/kachaka/env.sh"]
 
 #=============================================================================
-FROM ubuntu:22.04 AS kachaka-playground-base-amd64
+FROM ubuntu:24.04 AS kachaka-playground-base-amd64
 
 #-----------------------------------------------------------------------------
 # This image was created by executing the following command within https://github.com/multiarch/ubuntu-core
-# sudo ./update.sh -a arm64 -v jammy -q aarch64 -u v6.1.0-5 -d docker.io/multiarch/ubuntu-core -t arm64
-FROM asia-northeast1-docker.pkg.dev/pfr-flexci/tmp/multiarch/ubuntu-core:KEEP-arm64-jammy AS kachaka-playground-base-arm64
+# sudo ./update.sh -a arm64 -v noble -q aarch64 -u v6.1.0-5 -d docker.io/multiarch/ubuntu-core -t arm64
+FROM asia-northeast1-docker.pkg.dev/pfr-flexci/tmp/multiarch/ubuntu-core:KEEP-arm64-noble AS kachaka-playground-base-arm64
 
 #-----------------------------------------------------------------------------
 FROM kachaka-playground-base-${TARGETARCH} AS kachaka-playground
@@ -208,7 +212,7 @@ RUN adduser kachaka --uid 5000
 RUN echo kachaka:kachaka | chpasswd
 
 ARG PROTO_DIR=/usr/local/share/kachaka/protos
-ARG PYTHON_PACKAGE_DIR=/usr/local/lib/python3.10/dist-packages/
+ARG PYTHON_PACKAGE_DIR=/usr/local/lib/python3.12/dist-packages/
 COPY protos/kachaka-api.proto ${PROTO_DIR}/kachaka-api.proto
 RUN python3 -m grpc_tools.protoc \
     -I${PROTO_DIR} \
