@@ -1,0 +1,53 @@
+# Multi Map Exporter Configuration file for Kachaka Fleet Manager
+# Replace the example values with your actual configuration before running < multi_map_exporter.py >
+
+# List of Kachaka robots to connect to
+kachaka_robots:
+  - ip: "192.168.*.*"  # Replace with your Kachaka robot's IP address (check from Kachaka app)
+    name: "Kachaka-Robot-01"  # Robot Discription
+    target_edge_pcs: ["EdgePC1"]  # List of edge PC IDs this robot's maps should be sent to
+  
+  # Example of a robot that sends maps to o
+  - ip: "192.**.*.*"  # Replace with your Kachaka robot's IP address
+    name: "Kachaka-Robot-02"  # Robot Description
+    target_edge_pcs: ["EdgePC2"] #List of edge PC IDs this robot's maps should be sent to
+    #target_edge_pcs: ["EdgePC1", "EdgePC2"]  # Example of a robot sending maps to multiple edge PCs
+  
+  #Add more robots as needed by duplicating the above format
+  # - ip: "192.168.x.x"
+  #   name: "Kachaka-Robot-03"
+  #   target_edge_pcs: ["EdgePC3"]
+
+# List of edge PCs to transfer maps to
+edge_pcs:
+  # Primary edge PC configuration
+  - id: "EdgePC1"  # A unique identifier for this edge PC (used in target_edge_pcs above)
+    ip: "192.*.*.*"  # Can be IP address (e.g., "192.168.x.x") or hostname (e.g., "edge1.local")
+    username: "username1"  # SSH username for this edge PC
+    map_dir: "/usr/local/share/hats_sdk/map/"  # Primary directory for map storage
+    backup_dir: "/home/username1/map_backup/"  # Secondary backup directory
+    description: "Primary Edge PC"  
+  
+  # Secondary edge PC configuration
+  - id: "EdgePC2"
+    ip: "192.*.*.*"  # Can be IP address (e.g., "192.168.x.x") or hostname (e.g., "edge2.local")
+    username: "username2"
+    map_dir: "/usr/local/share/hats_sdk/map/"
+    backup_dir: "/home/username2/map_backup/"
+    description: "Secondary Edge PC"
+  
+  # Add more edge PCs as needed by duplicating the above format
+  # - id: "EdgePC3"
+  #   ip: "edge3.local"
+  #   username: "username3"
+  #   map_dir: "/usr/local/share/hats_sdk/map/"
+  #   backup_dir: "/home/username3/map_backup/"
+  #   description: "Additional Edge PC"
+
+# General settings for the multi map exporter
+# Connection settings
+connection:
+  max_retries: 3  
+  retry_delay: 3  
+  grpc_port: 26400  # Default gRPC port for Kachaka robots (usually doesn't need to be changed)
+  transfer_timeout: 30  
