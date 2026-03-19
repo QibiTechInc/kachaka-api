@@ -53,13 +53,14 @@ class CameraBridge {
         stub_(std::move(stub)),
         node_(node) {
     rclcpp::SensorDataQoS qos;
+    rclcpp::SystemDefaultsQoS system_defaults_qos;
     // camera_info
     camera_info_publisher_ =
         node->create_publisher<sensor_msgs::msg::CameraInfo>("~/camera_info",
-                                                             qos);
+                                                             system_defaults_qos);
     camera_info_compressed_publisher_ =
         node->create_publisher<sensor_msgs::msg::CameraInfo>(
-            "~/image_raw/camera_info", qos);
+            "~/image_raw/camera_info", system_defaults_qos);
     using namespace std::placeholders;
     camera_info_bridge_ = std::make_unique<
         GrpcBridge<kachaka_api::GetRequest, GetCameraInfoResponse>>(
