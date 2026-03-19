@@ -10,7 +10,7 @@
                   exec="component_container_mt"
                   name="grpc_ros2_bridge_container"
                   namespace="$(var namespace)">
-    <composable_node pkg="kachaka_grpc_ros2_bridge"
+    <!-- <composable_node pkg="kachaka_grpc_ros2_bridge"
                      plugin="kachaka::grpc_ros2_bridge::AutoHomingComponent"
                      name="auto_homing"
                      namespace="$(var namespace)">
@@ -18,7 +18,7 @@
              value="$(var server_uri)" />
       <extra_arg name="use_intra_process_comms"
                  value="false" />
-    </composable_node>
+    </composable_node> -->
     <!-- <composable_node pkg="kachaka_grpc_ros2_bridge"
                      plugin="kachaka::grpc_ros2_bridge::BackCameraComponent"
                      name="back_camera"
@@ -108,7 +108,7 @@
       <extra_arg name="use_intra_process_comms"
                  value="false" />
     </composable_node>
-    <!-- <composable_node pkg="kachaka_grpc_ros2_bridge"
+    <composable_node pkg="kachaka_grpc_ros2_bridge"
                      plugin="kachaka::grpc_ros2_bridge::MappingComponent"
                      name="mapping"
                      namespace="$(var namespace)">
@@ -118,7 +118,7 @@
              value="$(var server_uri)" />
       <extra_arg name="use_intra_process_comms"
                  value="false" />
-    </composable_node> -->
+    </composable_node>
     <composable_node pkg="kachaka_grpc_ros2_bridge"
                      plugin="kachaka::grpc_ros2_bridge::RobotInfoComponent"
                      name="robot_info"
