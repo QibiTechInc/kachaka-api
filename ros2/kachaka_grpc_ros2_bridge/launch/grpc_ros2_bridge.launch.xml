@@ -10,7 +10,7 @@
                   exec="component_container_mt"
                   name="grpc_ros2_bridge_container"
                   namespace="$(var namespace)">
-    <!-- <composable_node pkg="kachaka_grpc_ros2_bridge"
+    <composable_node pkg="kachaka_grpc_ros2_bridge"
                      plugin="kachaka::grpc_ros2_bridge::AutoHomingComponent"
                      name="auto_homing"
                      namespace="$(var namespace)">
@@ -18,7 +18,7 @@
              value="$(var server_uri)" />
       <extra_arg name="use_intra_process_comms"
                  value="false" />
-    </composable_node> -->
+    </composable_node>
     <!-- <composable_node pkg="kachaka_grpc_ros2_bridge"
                      plugin="kachaka::grpc_ros2_bridge::BackCameraComponent"
                      name="back_camera"
@@ -29,8 +29,8 @@
              value="$(var server_uri)" />
       <extra_arg name="use_intra_process_comms"
                  value="false" />
-    </composable_node>
-    <composable_node pkg="kachaka_grpc_ros2_bridge"
+    </composable_node> -->
+    <!-- <composable_node pkg="kachaka_grpc_ros2_bridge"
                      plugin="kachaka::grpc_ros2_bridge::DiagnosticsComponent"
                      name="diagnostics"
                      namespace="$(var namespace)">
@@ -38,7 +38,7 @@
              value="$(var server_uri)" />
       <extra_arg name="use_intra_process_comms"
                  value="false" />
-    </composable_node>
+    </composable_node> -->
     <composable_node pkg="kachaka_grpc_ros2_bridge"
                      plugin="kachaka::grpc_ros2_bridge::KachakaCommandComponent"
                      name="kachaka_command"
@@ -48,7 +48,7 @@
       <extra_arg name="use_intra_process_comms"
                  value="false" />
     </composable_node>
-    <composable_node pkg="kachaka_grpc_ros2_bridge"
+    <!-- <composable_node pkg="kachaka_grpc_ros2_bridge"
                      plugin="kachaka::grpc_ros2_bridge::FrontCameraComponent"
                      name="front_camera"
                      namespace="$(var namespace)">
@@ -58,8 +58,8 @@
              value="$(var server_uri)" />
       <extra_arg name="use_intra_process_comms"
                  value="false" />
-    </composable_node>
-    <composable_node pkg="kachaka_grpc_ros2_bridge"
+    </composable_node> -->
+    <!-- <composable_node pkg="kachaka_grpc_ros2_bridge"
                      plugin="kachaka::grpc_ros2_bridge::GoalPoseComponent"
                      name="goal_pose"
                      namespace="$(var namespace)">
@@ -68,7 +68,7 @@
       <extra_arg name="use_intra_process_comms"
                  value="false" />
     </composable_node> -->
-    <composable_node pkg="kachaka_grpc_ros2_bridge"
+    <!-- <composable_node pkg="kachaka_grpc_ros2_bridge"
                      plugin="kachaka::grpc_ros2_bridge::ImuComponent"
                      name="imu"
                      namespace="$(var namespace)">
@@ -78,7 +78,7 @@
              value="$(var server_uri)" />
       <extra_arg name="use_intra_process_comms"
                  value="false" />
-    </composable_node>
+    </composable_node> -->
     <!-- <composable_node pkg="kachaka_grpc_ros2_bridge"
                      plugin="kachaka::grpc_ros2_bridge::LayoutComponent"
                      name="layout"
@@ -149,7 +149,7 @@
       <extra_arg name="use_intra_process_comms"
                  value="false" />
     </composable_node>
-    <composable_node pkg="kachaka_grpc_ros2_bridge"
+    <!-- <composable_node pkg="kachaka_grpc_ros2_bridge"
                      plugin="kachaka::grpc_ros2_bridge::WheelOdometryComponent"
                      name="wheel_odometry"
                      namespace="$(var namespace)">
@@ -159,8 +159,8 @@
              value="$(var server_uri)" />
       <extra_arg name="use_intra_process_comms"
                  value="false" />
-    </composable_node>
-    <composable_node pkg="kachaka_grpc_ros2_bridge"
+    </composable_node> -->
+    <!-- <composable_node pkg="kachaka_grpc_ros2_bridge"
                      plugin="kachaka::grpc_ros2_bridge::TofCameraComponent"
                      name="tof_camera"
                      namespace="$(var namespace)">
@@ -170,7 +170,7 @@
              value="$(var server_uri)" />
       <extra_arg name="use_intra_process_comms"
                  value="false" />
-    </composable_node>
+    </composable_node> -->
     <!-- <composable_node pkg="kachaka_grpc_ros2_bridge"
                      plugin="kachaka::grpc_ros2_bridge::TorchComponent"
                      name="torch"
