@@ -16,7 +16,7 @@
 #include <memory>
 #include <utility>
 
-#include <cv_bridge/cv_bridge.hpp>
+#include <cv_bridge/cv_bridge.h>
 
 #include <grpcpp/grpcpp.h>
 #include <opencv2/opencv.hpp>

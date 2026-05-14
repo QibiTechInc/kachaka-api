@@ -1,11 +1,11 @@
 # syntax=docker/dockerfile:1.6.0
 #=============================================================================
-# FROM amd64/ros:humble-ros-core-noble AS kachaka-api-base-amd64
-FROM osrf/ros:kilted-desktop-full-noble AS kachaka-api-base-amd64
+# FROM amd64/ros:humble-ros-core-jammy AS kachaka-api-base-amd64
+FROM osrf/ros:humble-desktop-full-jammy AS kachaka-api-base-amd64
 #-----------------------------------------------------------------------------
-# FROM arm64v8/ros:humble-ros-core-noble AS kachaka-api-base-arm64
+# FROM arm64v8/ros:humble-ros-core-jammy AS kachaka-api-base-arm64
 
-ARG ROS_DISTRO=kilted
+ARG ROS_DISTRO=humble
 #=============================================================================
 FROM kachaka-api-base-${TARGETARCH} AS kachaka-api-base
 
@@ -18,12 +18,13 @@ RUN apt-get update && \
         language-pack-ja-base \
         libgrpc++ \
         ros-${ROS_DISTRO}-rmw-zenoh* \
+        ros-${ROS_DISTRO}-rmw-cyclonedds* \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN sed -i '/transport_optimization:/,/^[[:space:]]*},/d' /opt/ros/kilted/share/rmw_zenoh_cpp/config/DEFAULT_RMW_ZENOH_ROUTER_CONFIG.json5
-RUN sed -i '/transport_optimization:/,/^[[:space:]]*},/d' /opt/ros/kilted/share/rmw_zenoh_cpp/config/DEFAULT_RMW_ZENOH_SESSION_CONFIG.json5
+RUN sed -i '/transport_optimization:/,/^[[:space:]]*},/d' /opt/ros/${ROS_DISTRO}/share/rmw_zenoh_cpp/config/DEFAULT_RMW_ZENOH_ROUTER_CONFIG.json5
+RUN sed -i '/transport_optimization:/,/^[[:space:]]*},/d' /opt/ros/${ROS_DISTRO}/share/rmw_zenoh_cpp/config/DEFAULT_RMW_ZENOH_SESSION_CONFIG.json5
 #=============================================================================
 FROM kachaka-api-base AS kachaka-api-rosdep
 
@@ -49,7 +50,7 @@ COPY ros2/demos/kachaka_speak/package.xml /ws/src/kachaka_speak/package.xml
 COPY ros2/demos/kachaka_vision/package.xml /ws/src/kachaka_vision/package.xml
 
 RUN rosdep keys --ignore-src --from-paths src \
-    | xargs rosdep resolve --rosdistro ${ROS_DISTRO} --os=ubuntu:noble \
+    | xargs rosdep resolve --rosdistro ${ROS_DISTRO} --os=ubuntu:jammy \
     | grep -v '^#' \
     | sed 's/ \+/\n/g'\
     | sort \
@@ -174,8 +175,8 @@ FROM ubuntu:24.04 AS kachaka-playground-base-amd64
 
 #-----------------------------------------------------------------------------
 # This image was created by executing the following command within https://github.com/multiarch/ubuntu-core
-# sudo ./update.sh -a arm64 -v noble -q aarch64 -u v6.1.0-5 -d docker.io/multiarch/ubuntu-core -t arm64
-FROM asia-northeast1-docker.pkg.dev/pfr-flexci/tmp/multiarch/ubuntu-core:KEEP-arm64-noble AS kachaka-playground-base-arm64
+# sudo ./update.sh -a arm64 -v jammy -q aarch64 -u v6.1.0-5 -d docker.io/multiarch/ubuntu-core -t arm64
+FROM asia-northeast1-docker.pkg.dev/pfr-flexci/tmp/multiarch/ubuntu-core:KEEP-arm64-jammy AS kachaka-playground-base-arm64
 
 #-----------------------------------------------------------------------------
 FROM kachaka-playground-base-${TARGETARCH} AS kachaka-playground
