@@ -67,7 +67,8 @@ class OdometryComponent : public rclcpp::Node {
     frame_prefix_ = this->get_parameter("frame_prefix").as_string();
     stub_ = GetSharedStub(declare_parameter("server_uri", ""));
 
-    rclcpp::SensorDataQoS qos;
+    // rclcpp::SensorDataQoS qos;
+    rclcpp::SystemDefaultsQoS qos;
     using namespace std::placeholders;
     odometry_bridge_ =
         std::make_unique<Ros2TopicBridge<kachaka_api::GetRosOdometryResponse,
