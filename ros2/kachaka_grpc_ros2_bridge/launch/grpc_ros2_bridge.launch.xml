@@ -64,7 +64,7 @@
                      name="goal_pose"
                      namespace="$(var namespace)">
       <remap from="~/goal_pose"
-             to="goal_pose" />
+             to="api_goal_pose" />
       <extra_arg name="use_intra_process_comms"
                  value="false" />
     </composable_node>
