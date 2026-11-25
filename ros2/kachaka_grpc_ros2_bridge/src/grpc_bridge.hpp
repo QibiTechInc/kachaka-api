@@ -26,6 +26,9 @@ namespace {
 
 constexpr std::chrono::milliseconds kTimerInterval{20};
 constexpr std::chrono::seconds kTimerDeadlineDuration{5};
+// While the robot answers UNAVAILABLE (for example "Not ready" while it loads a
+// map), the stream retries at this interval instead of every kTimerInterval.
+constexpr std::chrono::seconds kUnavailableRetryInterval{1};
 
 }  // namespace
 
@@ -103,6 +106,9 @@ class GrpcBridge {
     if (pause_async_callback_()) {
       return;
     }
+    if (std::chrono::steady_clock::now() < retry_not_before_) {
+      return;
+    }
     {
       std::lock_guard lock(mutex_);
       grpc::ClientContext context;
@@ -112,8 +118,28 @@ class GrpcBridge {
       GrpcResponse response;
 
       const grpc::Status status = grpc_service_(&context, request, &response);
+      const bool unavailable =
+          status.error_code() == grpc::StatusCode::UNAVAILABLE;
       if (status.ok()) {
+        if (unavailable_) {
+          RCLCPP_INFO(node_->get_logger(), "'%s' bridge recovered",
+                      node_->get_name());
+          unavailable_ = false;
+        }
         grpc_response_callback_(response);
+      } else if (unavailable) {
+        // Keep the timer running: the robot answers UNAVAILABLE for a while
+        // after a map switch, and nothing else would start the stream again.
+        if (not unavailable_) {
+          RCLCPP_ERROR(node_->get_logger(),
+                       "'%s' error #%d: %s, retrying every %ld s",
+                       node_->get_name(), status.error_code(),
+                       status.error_message().c_str(),
+                       static_cast<long>(kUnavailableRetryInterval.count()));
+          unavailable_ = true;
+        }
+        retry_not_before_ =
+            std::chrono::steady_clock::now() + kUnavailableRetryInterval;
       } else if (status.error_code() != grpc::StatusCode::CANCELLED and
                  status.error_code() != grpc::StatusCode::DEADLINE_EXCEEDED) {
         RCLCPP_ERROR(node_->get_logger(), "'%s' error #%d: %s",
@@ -121,7 +147,7 @@ class GrpcBridge {
                      status.error_message().c_str());
       }
 
-      if (stopped_ or status.error_code() == grpc::StatusCode::UNAVAILABLE) {
+      if (stopped_) {
         StopAsync();
         return;
       }
@@ -136,6 +162,8 @@ class GrpcBridge {
   std::mutex mutex_;
   rclcpp::TimerBase::SharedPtr timer_{nullptr};
   std::atomic<bool> stopped_{false};
+  bool unavailable_{false};
+  std::chrono::steady_clock::time_point retry_not_before_{};
   GrpcRequestCreation grpc_request_creation_{[]() {
     return GrpcRequest();
   }};
